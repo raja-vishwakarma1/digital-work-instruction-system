@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurator Login</title>
+
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<style>
+
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:'Poppins', sans-serif;
+}
+
+body{
+height:100vh;
+background:#0a0a0a;
+display:flex;
+justify-content:center;
+align-items:center;
+color:white;
+overflow:hidden;
+}
+
+/* BACKGROUND */
+
+.background{
+position:fixed;
+width:100%;
+height:100%;
+z-index:-1;
+overflow:hidden;
+}
+
+/* ANIMATION */
+
+@keyframes float{
+0%{transform:translateY(0px);}
+50%{transform:translateY(-40px);}
+100%{transform:translateY(0px);}
+}
+
+.circle{
+position:absolute;
+border-radius:50%;
+filter:blur(100px);
+animation:float 12s infinite ease-in-out;
+}
+
+.c1{
+width:500px;
+height:500px;
+background:#ff00cc;
+top:-150px;
+left:-150px;
+opacity:.15;
+animation-duration:20s;
+}
+
+.c2{
+width:450px;
+height:450px;
+background:#00f260;
+bottom:-120px;
+right:-120px;
+opacity:.15;
+animation-duration:15s;
+}
+
+.c3{
+width:350px;
+height:350px;
+background:#0575e6;
+top:50%;
+left:50%;
+transform:translate(-50%,-50%);
+opacity:.12;
+animation-duration:18s;
+}
+
+/* LOGIN BOX */
+
+.login-container{
+width:420px;
+max-width:90%;
+padding:50px 40px;
+background:rgba(255,255,255,0.04);
+backdrop-filter:blur(20px);
+border-radius:20px;
+border:1px solid rgba(255,255,255,0.1);
+box-shadow:0 20px 40px rgba(0,0,0,0.5);
+}
+
+/* HEADER */
+
+.login-header{
+text-align:center;
+margin-bottom:35px;
+}
+
+.logo-icon{
+width:70px;
+height:70px;
+background:linear-gradient(135deg,#ff00cc,#333399);
+border-radius:20px;
+display:flex;
+align-items:center;
+justify-content:center;
+margin:auto;
+font-size:30px;
+margin-bottom:15px;
+}
+
+.login-header h1{
+font-size:26px;
+}
+
+.login-header p{
+color:rgba(255,255,255,0.5);
+font-size:14px;
+}
+
+/* INPUT */
+
+.form-group{
+position:relative;
+margin-bottom:25px;
+}
+
+.form-input{
+width:100%;
+padding:15px 20px 15px 45px;
+background:rgba(255,255,255,0.05);
+border:1px solid rgba(255,255,255,0.1);
+border-radius:10px;
+color:white;
+outline:none;
+transition:.3s;
+}
+
+.form-input:focus{
+border-color:#ff00cc;
+box-shadow:0 0 15px rgba(255,0,204,0.4);
+}
+
+.form-icon{
+position:absolute;
+left:15px;
+top:50%;
+transform:translateY(-50%);
+color:rgba(255,255,255,0.4);
+}
+
+/* BUTTON */
+
+.login-btn{
+width:100%;
+padding:15px;
+border:none;
+border-radius:10px;
+background:linear-gradient(135deg,#ff00cc,#333399);
+color:white;
+font-size:16px;
+cursor:pointer;
+transition:.3s;
+}
+
+.login-btn:hover{
+transform:translateY(-2px);
+box-shadow:0 10px 25px rgba(255,0,204,0.5);
+}
+
+/* RESPONSIVE */
+
+@media(max-width:500px){
+
+.login-container{
+padding:40px 25px;
+}
+
+.login-header h1{
+font-size:22px;
+}
+
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="background">
+<div class="circle c1"></div>
+<div class="circle c2"></div>
+<div class="circle c3"></div>
+</div>
+
+<div class="login-container">
+
+<div class="login-header">
+<div class="logo-icon">⚡</div>
+<h1>Admin Login</h1>
+<p>Login to Configurator</p>
+</div>
+
+<form onsubmit="login(event)">
+
+<div class="form-group">
+<input id="user" type="text" class="form-input" placeholder="Username" required>
+<i class="fas fa-user form-icon"></i>
+</div>
+
+<div class="form-group">
+<input id="pass" type="password" class="form-input" placeholder="Password" required>
+<i class="fas fa-lock form-icon"></i>
+</div>
+
+<button class="login-btn" id="loginBtn">Login</button>
+
+</form>
+
+</div>
+
+<script>
+
+function login(event){
+
+event.preventDefault()
+
+const u=document.getElementById("user").value
+const p=document.getElementById("pass").value
+
+const btn=document.getElementById("loginBtn")
+
+btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Checking...'
+
+setTimeout(()=>{
+
+if(u=="admin" && p=="1234"){
+
+location.href="testdashboard.html"
+
+}
+else{
+
+alert("Wrong Login")
+btn.innerHTML="Login"
+
+}
+
+},1000)
+
+}
+
+</script>
+
+</body>
+</html>

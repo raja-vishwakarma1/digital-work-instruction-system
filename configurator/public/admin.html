@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Administrator</title>
+
+<style>
+body{margin:0;font-family:Poppins,sans-serif;background:#0f172a;color:white;}
+.navbar{display:flex;justify-content:space-between;align-items:center;padding:18px 30px;background:#111827;border-bottom:1px solid rgba(255,255,255,0.1);}
+.logo{font-size:20px;font-weight:600;}
+.add-user-btn{background:linear-gradient(135deg,#6366f1,#9333ea);border:none;padding:10px 20px;color:white;border-radius:8px;cursor:pointer;}
+.main-content{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:30px;padding:30px;text-align:center;}
+.user-card{display:flex;flex-direction:column;align-items:center;background:#1f2937;padding:10px;border-radius:12px;}
+.user-circle{width:100px;height:100px;border-radius:50%;overflow:hidden;margin-bottom:8px;}
+.user-circle img{width:100%;height:100%;object-fit:cover;}
+.edit-btn{background:#fbbf24;border:none;padding:4px;margin:2px;}
+.delete-btn{background:#ef4444;border:none;padding:4px;margin:2px;color:white;}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;}
+.overlay.active{display:block;}
+.side-drawer{position:fixed;right:-400px;top:0;width:360px;height:100%;background:#111827;transition:0.4s;padding:25px;}
+.side-drawer.active{right:0;}
+.search-input{width:300px;padding:8px;margin:20px;border-radius:6px;border:none;background:#1f2937;color:white;}
+</style>
+
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">ADMIN PANEL</div>
+  <button class="add-user-btn" id="openDrawer">ADD USER</button>
+  <input type="text" id="searchInput" class="search-input" placeholder="Search user...">
+</nav>
+
+<div class="main-content" id="userContainer"></div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="side-drawer" id="sideDrawer">
+  <h2 id="drawerTitle">Add User</h2>
+
+  <form id="addUserForm">
+    <input type="text" id="username" placeholder="Name" required><br><br>
+    <select id="role">
+      <option>Operator</option>
+      <option>Supervisor</option>
+      <option>Administrator</option>
+    </select><br><br>
+    <input type="file" id="imageUpload"><br><br>
+    <button type="submit">Submit</button>
+  </form>
+</div>
+
+<script>
+
+// 🔥 CHANGE HERE ONLY (YOUR SERVER IP)
+const BASE_URL = "http://10.45.159.235:80";
+
+const openBtn = document.getElementById('openDrawer');
+const drawer = document.getElementById('sideDrawer');
+const overlay = document.getElementById('overlay');
+const container = document.getElementById('userContainer');
+const form = document.getElementById('addUserForm');
+const searchInput = document.getElementById('searchInput');
+
+let editingId = null;
+
+// Drawer
+openBtn.onclick = ()=> {
+  drawer.classList.add('active');
+  overlay.classList.add('active');
+}
+
+overlay.onclick = ()=> {
+  drawer.classList.remove('active');
+  overlay.classList.remove('active');
+  form.reset();
+  editingId = null;
+}
+
+// 🔥 FETCH USERS
+async function fetchUsers(){
+  const res = await fetch(`${BASE_URL}/users`);
+  const data = await res.json();
+  renderUsers(data);
+}
+
+// 🔥 RENDER USERS
+function renderUsers(users){
+  container.innerHTML = "";
+  const search = searchInput.value.toLowerCase();
+
+  users.filter(u=>u.name.toLowerCase().includes(search)).forEach(u=>{
+
+    const img = u.image_path 
+      ? `${BASE_URL}${u.image_path}` 
+      : "https://via.placeholder.com/100";
+
+    const card = document.createElement("div");
+    card.className = "user-card";
+
+    card.innerHTML = `
+      <div class="user-circle"><img src="${img}"></div>
+      <b>${u.name}</b>
+      <small>${u.role}</small>
+      <button class="edit-btn">Edit</button>
+      <button class="delete-btn">Delete</button>
+    `;
+
+    // EDIT
+    card.querySelector(".edit-btn").onclick = ()=>{
+      editingId = u.id;
+      document.getElementById("username").value = u.name;
+      document.getElementById("role").value = u.role;
+      drawer.classList.add('active');
+      overlay.classList.add('active');
+    };
+
+    // DELETE
+    card.querySelector(".delete-btn").onclick = async ()=>{
+      if(confirm("Delete user?")){
+        await fetch(`${BASE_URL}/users/${u.id}`, { method:"DELETE" });
+        fetchUsers();
+      }
+    };
+
+    container.appendChild(card);
+  });
+}
+
+// 🔥 SUBMIT FORM
+form.addEventListener("submit", async(e)=>{
+  e.preventDefault();
+
+  const name = document.getElementById("username").value;
+  const role = document.getElementById("role").value;
+  const image = document.getElementById("imageUpload").files[0];
+
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("role", role);
+  if(image) formData.append("image", image);
+
+  if(editingId){
+    await fetch(`${BASE_URL}/users/${editingId}`, {
+      method:"PUT",
+      body: formData
+    });
+  } else {
+    await fetch(`${BASE_URL}/users`, {
+      method:"POST",
+      body: formData
+    });
+  }
+
+  drawer.classList.remove('active');
+  overlay.classList.remove('active');
+  form.reset();
+  editingId = null;
+
+  fetchUsers();
+});
+
+// SEARCH
+searchInput.addEventListener("input", fetchUsers);
+
+// INIT
+fetchUsers();
+
+</script>
+
+</body>
+</html>

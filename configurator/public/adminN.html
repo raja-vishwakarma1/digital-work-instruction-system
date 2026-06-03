@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Administrator</title>
+<style>
+body{margin:0;font-family:Poppins,sans-serif;background:#0f172a;color:white;}
+.navbar{display:flex;justify-content:space-between;align-items:center;padding:18px 30px;background:#111827;border-bottom:1px solid rgba(255,255,255,0.1);}
+.logo{font-size:20px;font-weight:600;}
+.add-user-btn{background:linear-gradient(135deg,#6366f1,#9333ea);border:none;padding:10px 20px;color:white;border-radius:8px;cursor:pointer;transition:0.3s;}
+.add-user-btn:hover{transform:scale(1.05);}
+.main-content{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:30px;padding:30px;text-align:center;}
+.user-card{display:flex;flex-direction:column;align-items:center;background:#1f2937;padding:10px;border-radius:12px;position:relative;}
+.user-circle{width:100px;height:100px;border-radius:50%;overflow:hidden;margin-bottom:8px;box-shadow:0 10px 25px rgba(0,0,0,0.4);}
+.user-circle img{width:100%;height:100%;object-fit:cover;}
+.user-name{font-weight:600;}
+.user-role{font-size:13px;color:#9ca3af;margin-bottom:6px;}
+.edit-btn,.delete-btn{cursor:pointer;margin:2px;padding:2px 6px;border:none;border-radius:5px;font-size:12px;}
+.edit-btn{background:#fbbf24;color:#111827;}
+.delete-btn{background:#ef4444;color:white;}
+.overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.6);display:none;z-index:900;}
+.overlay.active{display:block;}
+.side-drawer{position:fixed;right:-400px;top:0;width:360px;height:100%;background:#111827;transition:0.4s;z-index:1000;padding:25px;box-shadow:-10px 0 40px rgba(0,0,0,0.5);}
+.side-drawer.active{right:0;}
+.drawer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:25px;}
+.close-btn{font-size:26px;cursor:pointer;}
+.form-group{margin-bottom:18px;}
+.form-group label{display:block;margin-bottom:5px;font-size:14px;}
+.form-group input,.form-group select{width:100%;padding:10px;border-radius:6px;border:none;background:#1f2937;color:white;}
+.submit-btn{width:100%;padding:12px;border:none;border-radius:8px;background:linear-gradient(135deg,#22c55e,#16a34a);color:white;font-weight:600;cursor:pointer;}
+.search-input{width:300px;padding:8px;margin:20px;border-radius:6px;border:none;background:#1f2937;color:white;}
+</style>
+</head>
+<body>
+
+<nav class="navbar">
+  <div class="logo">ADMIN PANEL</div>
+  <button class="add-user-btn" id="openDrawer">ADD USER</button>
+  <input type="text" id="searchInput" class="search-input" placeholder="Search user...">
+</nav>
+
+<div class="main-content" id="userContainer"></div>
+
+<div class="overlay" id="overlay"></div>
+
+<div class="side-drawer" id="sideDrawer">
+  <div class="drawer-header">
+    <h2 id="drawerTitle">Add New User</h2>
+    <span class="close-btn" id="closeDrawer">&times;</span>
+  </div>
+
+  <form id="addUserForm">
+    <div class="form-group">
+      <label>User Name</label>
+      <input type="text" id="username" required>
+    </div>
+    <div class="form-group">
+      <label>User Role</label>
+      <select id="role">
+        <option>Operator</option>
+        <option>Supervisor</option>
+        <option>Administrator</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Upload Image</label>
+      <input type="file" id="imageUpload" accept="image/*">
+    </div>
+    <button type="submit" class="submit-btn">Submit</button>
+  </form>
+</div>
+
+<script>
+const openBtn = document.getElementById('openDrawer');
+const closeBtn = document.getElementById('closeDrawer');
+const drawer = document.getElementById('sideDrawer');
+const overlay = document.getElementById('overlay');
+const container = document.getElementById('userContainer');
+const form = document.getElementById('addUserForm');
+const drawerTitle = document.getElementById('drawerTitle');
+const searchInput = document.getElementById('searchInput');
+
+let editingId = null;
+
+function openDrawer() {
+  drawer.classList.add('active');
+  overlay.classList.add('active');
+}
+
+function closeDrawerFunc() {
+  drawer.classList.remove('active');
+  overlay.classList.remove('active');
+  form.reset();
+  editingId = null;
+  drawerTitle.innerText = "Add New User";
+}
+
+openBtn.onclick = openDrawer;
+closeBtn.onclick = closeDrawerFunc;
+overlay.onclick = closeDrawerFunc;
+
+// Fetch users
+async function fetchUsers(){
+  const res = await fetch("http://localhost:80/users"); // port 80 according to server.js
+  const data = await res.json();
+  renderUsers(data);
+}
+
+// Render users
+function renderUsers(users){
+  container.innerHTML = "";
+  const searchTerm = searchInput.value.toLowerCase();
+  users.filter(u => u.name.toLowerCase().includes(searchTerm)).forEach(u => {
+    const imgSrc = u.image_path ? `http://localhost:80${u.image_path}` : "https://via.placeholder.com/100";
+    const card = document.createElement("div");
+    card.className = "user-card";
+    card.innerHTML = `
+      <div class="user-circle"><img src="${imgSrc}"></div>
+      <div class="user-name">${u.name}</div>
+      <div class="user-role">${u.role}</div>
+      <button class="edit-btn">Edit</button>
+      <button class="delete-btn">Delete</button>
+    `;
+
+    const editBtn = card.querySelector(".edit-btn");
+    const deleteBtn = card.querySelector(".delete-btn");
+
+    editBtn.onclick = () => {
+      editingId = u.id;
+      drawerTitle.innerText = "Edit User";
+      openDrawer();
+      document.getElementById('username').value = u.name;
+      document.getElementById('role').value = u.role;
+    };
+
+    deleteBtn.onclick = async () => {
+      if(confirm("Are you sure you want to delete this user?")){
+        await fetch(`http://localhost:80/users/${u.id}`, { method: "DELETE" });
+        fetchUsers();
+      }
+    };
+
+    container.appendChild(card);
+  });
+}
+
+// Form submit
+form.addEventListener("submit", async(e)=>{
+  e.preventDefault();
+  const name = document.getElementById('username').value;
+  const role = document.getElementById('role').value;
+  const image = document.getElementById('imageUpload').files[0];
+
+  const formData = new FormData();
+  formData.append("name", name);
+  formData.append("role", role);
+  if(image) formData.append("image", image);
+
+  if(editingId){
+    await fetch(`http://localhost:80/users/${editingId}`,{
+      method: "PUT",
+      body: formData
+    });
+  } else {
+    await fetch("http://localhost:80/users",{
+      method: "POST",
+      body: formData
+    });
+  }
+
+  closeDrawerFunc();
+  fetchUsers();
+});
+
+searchInput.addEventListener("input", fetchUsers);
+
+fetchUsers();
+</script>
+
+</body>
+</html>
+
+//yahi code hai admin panel ka jisme user add kar sakte ho edit kar sakte ho delete kar sakte ho aur search bhi kar sakte ho last change 28/6/2024 ko kiya tha by raja vishwakarma
