@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Configurator Viewer</title>
+
+<style>
+body {
+    margin:0;
+    font-family: Arial, sans-serif;
+    background:#111827;
+    color:#fff;
+}
+
+header {
+    text-align:center;
+    padding:15px;
+    font-size:24px;
+    font-weight:bold;
+    background:#1f2937;
+    border-bottom:2px solid #4f46e5;
+}
+
+.navbar {
+    display:flex;
+    justify-content:center;
+    gap:20px;
+    padding:10px;
+}
+
+.navbar button {
+    padding:10px 20px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    font-weight:bold;
+    color:#fff;
+    background:#374151;
+}
+
+.navbar button.active {
+    background:#4f46e5;
+}
+
+.main {
+    display:flex;
+    padding:20px;
+    gap:20px;
+}
+
+.left {
+    flex:1;
+    background:#1f2937;
+    border-radius:12px;
+    padding:15px;
+    max-width:300px;
+    overflow-y:auto;
+    height:500px;
+}
+
+.step-card {
+    background:#111827;
+    padding:10px;
+    border-radius:8px;
+    border:1px solid #4f46e5;
+}
+
+.right {
+    flex:3;
+    background:#1f2937;
+    border-radius:12px;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    position: relative;
+}
+
+.right img {
+    max-width:100%;
+    max-height:100%;
+}
+
+/* 🔥 FULLSCREEN */
+.fullscreen-mode {
+    position: fixed !important;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 9999;
+    background: black;
+}
+
+.fullscreen-mode img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 🔥 BUTTON */
+#fullscreen-btn {
+    position:absolute;
+    top:10px;
+    right:10px;
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    background:#4f46e5;
+    color:#fff;
+    cursor:pointer;
+}
+
+/* 🔥 OVERLAY TEXT */
+#overlay-text {
+    position:absolute;
+    bottom:0;
+    left:0;
+    width:100%;
+    padding:20px;
+    background:rgba(0,0,0,0.7);
+    color:#fff;
+    font-size:18px;
+    opacity:0;
+    transition:opacity 0.3s;
+    pointer-events:none;
+}
+
+.users-container {
+    display:none;
+    flex-wrap:wrap;
+    gap:15px;
+    justify-content:center;
+}
+
+.user-card {
+    width:200px;
+    background:#1f2937;
+    padding:10px;
+    border-radius:10px;
+    text-align:center;
+}
+
+.user-card img {
+    width:100%;
+    height:150px;
+    object-fit:cover;
+}
+</style>
+</head>
+
+<body>
+
+<header>CONFIGURATOR VIEWER</header>
+
+<div class="navbar">
+    <button id="wi-btn" class="active">WORK INSTRUCTIONS</button>
+    <button id="users-btn">USERS</button>
+</div>
+
+<div class="main">
+    <div class="left" id="wi-left">
+        <h3>Current Step</h3>
+        <div id="steps-list"></div>
+    </div>
+
+    <div class="right" id="wi-right">
+        <img id="wi-image" src="">
+        <button id="fullscreen-btn">⛶ Fullscreen</button>
+        <div id="overlay-text"></div>
+    </div>
+
+    <div class="users-container" id="users-container"></div>
+</div>
+
+<script>
+
+// BASE URL
+const BASE_URL = "http://10.45.159.235:80";
+
+// DOM
+const wiBtn = document.getElementById("wi-btn");
+const usersBtn = document.getElementById("users-btn");
+const wiLeft = document.getElementById("wi-left");
+const wiRight = document.getElementById("wi-right");
+const usersContainer = document.getElementById("users-container");
+const stepsList = document.getElementById("steps-list");
+const wiImage = document.getElementById("wi-image");
+const overlay = document.getElementById("overlay-text");
+
+// FULLSCREEN
+const fullscreenBtn = document.getElementById("fullscreen-btn");
+let isFullscreen = false;
+
+fullscreenBtn.onclick = () => {
+    if (!isFullscreen) {
+        wiRight.classList.add("fullscreen-mode");
+        fullscreenBtn.innerText = "❌ Exit";
+    } else {
+        wiRight.classList.remove("fullscreen-mode");
+        fullscreenBtn.innerText = "⛶ Fullscreen";
+
+        // 🔥 hide overlay on exit
+        overlay.style.opacity = "0";
+    }
+    isFullscreen = !isFullscreen;
+};
+
+// ESC exit
+document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+        wiRight.classList.remove("fullscreen-mode");
+        fullscreenBtn.innerText = "⛶ Fullscreen";
+        overlay.style.opacity = "0";
+        isFullscreen = false;
+    }
+});
+
+// 🔥 SHOW TEXT ONLY IN FULLSCREEN + MOUSE MOVE
+let hideTimer;
+
+wiRight.addEventListener("mousemove", () => {
+
+    if (!isFullscreen) return;
+
+    overlay.style.opacity = "1";
+
+    clearTimeout(hideTimer);
+
+    hideTimer = setTimeout(() => {
+        overlay.style.opacity = "0";
+    }, 2000);
+});
+
+let stepsData = [];
+let usersData = [];
+let currentStepIndex = 0;
+
+// Toggle
+wiBtn.onclick = () => {
+    wiBtn.classList.add("active");
+    usersBtn.classList.remove("active");
+    wiLeft.style.display = "block";
+    wiRight.style.display = "flex";
+    usersContainer.style.display = "none";
+};
+
+usersBtn.onclick = () => {
+    usersBtn.classList.add("active");
+    wiBtn.classList.remove("active");
+    wiLeft.style.display = "none";
+    wiRight.style.display = "none";
+    usersContainer.style.display = "flex";
+};
+
+// Fetch Steps
+async function fetchSteps(){
+    try{
+        const res = await fetch(`${BASE_URL}/instructions`);
+        stepsData = await res.json();
+
+        if(stepsData.length > 0){
+            showStep(currentStepIndex);
+        }
+    }catch(e){
+        console.error("Steps error:", e);
+    }
+}
+
+// Show Step
+function showStep(index){
+    if(stepsData.length === 0) return;
+
+    currentStepIndex = index;
+    const step = stepsData[index];
+
+    wiImage.src = BASE_URL + step.image_path;
+
+    stepsList.innerHTML = `
+        <div class="step-card">
+            <strong>Step ${step.step_no}</strong><br>
+            ${step.description}
+        </div>
+    `;
+
+    overlay.innerHTML = `
+        Step ${step.step_no} - ${step.description}
+    `;
+}
+
+// Auto Slide
+setInterval(()=>{
+    if(stepsData.length === 0) return;
+    currentStepIndex = (currentStepIndex + 1) % stepsData.length;
+    showStep(currentStepIndex);
+}, 30000);
+
+// Fetch Users
+async function fetchUsers(){
+    try{
+        const res = await fetch(`${BASE_URL}/users`);
+        usersData = await res.json();
+        displayUsers();
+    }catch(e){
+        console.error("Users error:", e);
+    }
+}
+
+// Display Users
+function displayUsers(){
+    usersContainer.innerHTML = "";
+
+    usersData.forEach(user=>{
+        const div = document.createElement("div");
+        div.className = "user-card";
+
+        div.innerHTML = `
+            <img src="${BASE_URL}${user.image_path || ''}">
+            <h4>${user.name}</h4>
+            <p>${user.role}</p>
+        `;
+
+        usersContainer.appendChild(div);
+    });
+}
+
+// Auto refresh
+setInterval(()=>{
+    fetchSteps();
+    fetchUsers();
+}, 15000);
+
+// Initial
+fetchSteps();
+fetchUsers();
+
+</script>
+
+</body>
+</html>
